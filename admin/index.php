@@ -1,93 +1,106 @@
 <?php
 declare(strict_types=1);
-
 require_once dirname(__DIR__) . '/includes/auth.php';
 require_admin();
 
 $admin = current_admin();
-if ($admin === null) {
-    throw new RuntimeException('La session administrateur est introuvable.');
-}
-
 $settings = site_settings();
-$stockThreshold = filter_var(
-    required_setting($settings, 'stock_alert_threshold'),
-    FILTER_VALIDATE_INT,
-    ['options' => ['min_range' => 1]]
-);
-if ($stockThreshold === false) {
-    throw new RuntimeException('Le seuil d’alerte de stock est invalide.');
-}
+$stockThreshold = (int) required_setting($settings, 'stock_alert_threshold');
 
-$ordersToProcess = (int) db()
-    ->query("SELECT COUNT(*) FROM orders WHERE status IN ('nouvelle', 'confirmee')")
-    ->fetchColumn();
-
-$lowStockQuery = db()->prepare(
-    'SELECT id, name, stock
-     FROM products
-     WHERE stock <= :threshold
-     ORDER BY stock ASC, name ASC
-     LIMIT 10'
-);
+// Calculs statistiques
+$ordersToProcess = (int) db()->query("SELECT COUNT(*) FROM orders WHERE status IN ('nouvelle', 'confirmee')")->fetchColumn();
+$totalProducts = (int) db()->query("SELECT COUNT(*) FROM products")->fetchColumn();
+$totalRevenue = (float) db()->query("SELECT SUM(total) FROM orders WHERE status = 'livree'")->fetchColumn();
+$lowStockQuery = db()->prepare('SELECT id, name, stock FROM products WHERE stock <= :threshold ORDER BY stock ASC LIMIT 5');
 $lowStockQuery->execute(['threshold' => $stockThreshold]);
 $lowStockProducts = $lowStockQuery->fetchAll();
-
-$countQuery = db()->prepare('SELECT COUNT(*) FROM products WHERE stock <= :threshold');
-$countQuery->execute(['threshold' => $stockThreshold]);
-$lowStockCount = (int) $countQuery->fetchColumn();
 
 $pageTitle = 'Tableau de bord';
 require dirname(__DIR__) . '/includes/admin_header.php';
 ?>
-<div class="page-heading">
-    <div>
-        <p class="eyebrow">Administration Berluxe</p>
-        <h1>Tableau de bord</h1>
-        <p class="form-intro">Bonjour <?= e($admin['name']) ?>, voici les points à suivre.</p>
+
+<div class="dashboard-header">
+    <h2>Aperçu de la boutique</h2>
+    <p class="muted">Voici l'activité de Berluxe aujourd'hui.</p>
+</div>
+
+<!-- Cartes de statistiques -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">📦</div>
+        <div class="stat-info">
+            <span>Commandes à traiter</span>
+            <strong><?= e($ordersToProcess) ?></strong>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">🛍️</div>
+        <div class="stat-info">
+            <span>Total Produits</span>
+            <strong><?= e($totalProducts) ?></strong>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">💰</div>
+        <div class="stat-info">
+            <span>Chiffre d'affaires</span>
+            <strong><?= format_price((string)$totalRevenue) ?></strong>
+        </div>
+    </div>
+    <div class="stat-card warning">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-info">
+            <span>Stocks bas</span>
+            <strong><?= count($lowStockProducts) ?></strong>
+        </div>
     </div>
 </div>
 
-<section class="dashboard-grid" aria-label="Résumé de la boutique">
-    <article class="dashboard-card">
-        <p class="dashboard-label">Commandes à traiter</p>
-        <p class="dashboard-number"><?= e($ordersToProcess) ?></p>
-        <span>Nouvelles ou confirmées</span>
-        <a class="text-link" href="<?= e(site_url('admin/commandes.php')) ?>">Gérer les commandes</a>
-    </article>
-    <article class="dashboard-card">
-        <p class="dashboard-label">Produits en stock bas</p>
-        <p class="dashboard-number"><?= e($lowStockCount) ?></p>
-        <span>Seuil actuel : <?= e($stockThreshold) ?></span>
-    </article>
-</section>
-
-<section class="admin-card">
+<!-- Tableau des stocks bas -->
+<div class="admin-card" style="margin-top: 32px;">
     <div class="section-heading">
-        <div>
-            <h2>À réapprovisionner</h2>
-            <p class="muted">Les produits dont le stock est inférieur ou égal au seuil défini.</p>
-        </div>
-        <a class="button button-secondary" href="<?= e(site_url('admin/reglages.php')) ?>">Modifier les réglages</a>
+        <h3>À réapprovisionner</h3>
+        <a href="<?= e(site_url('admin/reglages.php')) ?>" class="text-link">Gérer les réglages</a>
     </div>
     <?php if ($lowStockProducts === []): ?>
-        <p class="empty-state">Aucun produit en stock bas pour le moment.</p>
+        <p class="empty-state">Tous les stocks sont bons !</p>
     <?php else: ?>
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr><th>Produit</th><th>Stock</th></tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($lowStockProducts as $product): ?>
-                        <tr>
-                            <td><?= e($product['name']) ?></td>
-                            <td><?= e($product['stock']) ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
+        <table class="admin-table">
+            <thead>
+                <tr><th>Produit</th><th>Stock restant</th></tr>
+            </thead>
+            <tbody>
+                <?php foreach ($lowStockProducts as $p): ?>
+                    <tr>
+                        <td><?= e($p['name']) ?></td>
+                        <td><span class="stock-badge"><?= e($p['stock']) ?> restants</span></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
     <?php endif; ?>
-</section>
+</div>
+
+<style>
+/* Styles spécifiques au Dashboard */
+.dashboard-header { margin-bottom: 24px; }
+.dashboard-header h2 { font-family: var(--font-heading); font-size: 2rem; margin: 0 0 4px; color: var(--color-text); }
+.stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+.stat-card { background: white; border-radius: 16px; padding: 24px; display: flex; align-items: center; gap: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #EAEAEA; }
+.stat-icon { font-size: 2rem; background: #FAF7F2; width: 60px; height: 60px; display: grid; place-items: center; border-radius: 12px; }
+.stat-info span { display: block; font-size: 0.9rem; color: var(--color-muted); margin-bottom: 4px; }
+.stat-info strong { display: block; font-size: 1.6rem; font-weight: 800; color: var(--color-text); }
+.stat-card.warning .stat-icon { background: #FBECEA; }
+.stat-card.warning strong { color: #B23A2E; }
+.admin-card { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid #EAEAEA; }
+.section-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.section-heading h3 { font-family: var(--font-heading); font-size: 1.3rem; margin: 0; color: var(--color-brand); }
+.admin-table { width: 100%; border-collapse: collapse; }
+.admin-table th { text-align: left; padding: 12px; font-size: 0.8rem; color: var(--color-muted); text-transform: uppercase; border-bottom: 1px solid #EAEAEA; }
+.admin-table td { padding: 16px 12px; border-bottom: 1px solid #EAEAEA; }
+.admin-table tr:last-child td { border-bottom: none; }
+.stock-badge { background: #FBECEA; color: #B23A2E; padding: 4px 12px; border-radius: 999px; font-weight: 600; font-size: 0.8rem; }
+</style>
+
 <?php require dirname(__DIR__) . '/includes/admin_footer.php'; ?>
+

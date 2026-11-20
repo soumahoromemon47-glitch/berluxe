@@ -233,10 +233,10 @@ $pageTitle = 'Finaliser la commande';
 require dirname(__DIR__) . '/includes/header.php';
 ?>
 <div class="container storefront-main">
-    <section class="storefront-heading">
+    <section class="checkout-header">
         <p class="eyebrow">Paiement à la livraison</p>
         <h1>Finaliser la commande</h1>
-        <p class="muted">Aucun compte ni paiement en ligne n’est nécessaire. Roxane confirmera la disponibilité par téléphone.</p>
+        <p class="muted">Aucun compte ni paiement en ligne. Roxane confirmera la disponibilité par téléphone.</p>
     </section>
 
     <?php if ($errorMessage !== null): ?>
@@ -245,13 +245,13 @@ require dirname(__DIR__) . '/includes/header.php';
 
     <?php if ($cartSubtotal === false): ?>
         <div class="notice notice-error" role="alert">
-            Ton panier contient un article indisponible ou dont le montant doit être corrigé.
+            Ton panier contient un article indisponible.
             <a class="text-link" href="<?= e(site_url('public/panier.php')) ?>">Vérifier le panier</a>
         </div>
     <?php else: ?>
         <div class="checkout-layout">
-            <section class="checkout-form-panel" aria-labelledby="delivery-title">
-                <h2 id="delivery-title">Coordonnées et livraison</h2>
+            <section class="checkout-form-card" aria-labelledby="checkout-form-title">
+                <h2 class="checkout-card-title" id="checkout-form-title">Coordonnées et livraison</h2>
                 <form class="form-stack" method="post" action="<?= e(site_url('public/commande.php')) ?>">
                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="checkout_token" value="<?= e($checkoutToken) ?>">
@@ -266,73 +266,66 @@ require dirname(__DIR__) . '/includes/header.php';
                             <input type="text" name="customer_first_name" maxlength="100" autocomplete="given-name" value="<?= e($formValues['customer_first_name']) ?>" required>
                         </label>
                     </div>
+
                     <label class="form-field">
                         <span>Téléphone WhatsApp</span>
-                        <input
-                            type="tel"
-                            name="customer_phone"
-                            maxlength="30"
-                            autocomplete="tel"
-                            inputmode="tel"
-                            value="<?= e($formValues['customer_phone']) ?>"
-                            placeholder="+225 01 02 03 04 05"
-                            required
-                        >
-                        <small>Indicatif international facultatif, 8 à 15 chiffres.</small>
+                        <input type="tel" name="customer_phone" maxlength="30" autocomplete="tel" inputmode="tel" value="<?= e($formValues['customer_phone']) ?>" placeholder="+225 01 02 03 04 05" required>
+                        <small>Format international accepté, 8 à 15 chiffres.</small>
                     </label>
+
                     <label class="form-field">
-                        <span>Commune</span>
+                        <span>Commune de livraison</span>
                         <select name="commune_id" data-delivery-preview required>
                             <option value="">Choisir une commune</option>
                             <?php foreach ($communes as $commune): ?>
-                                <option
-                                    value="<?= e($commune['id']) ?>"
-                                    data-delivery-fee="<?= e($deliveryFees[$commune['zone']]) ?>"
-                                    data-commune-name="<?= e($commune['name']) ?>"
-                                    <?= $formValues['commune_id'] === (string) $commune['id'] ? 'selected' : '' ?>
-                                >
+                                <option value="<?= e($commune['id']) ?>" data-delivery-fee="<?= e($deliveryFees[$commune['zone']]) ?>" data-commune-name="<?= e($commune['name']) ?>" <?= $formValues['commune_id'] === (string) $commune['id'] ? 'selected' : '' ?>>
                                     <?= e($commune['name']) ?> — <?= $commune['zone'] === 'abidjan' ? 'Abidjan' : 'Hors Abidjan' ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </label>
+
                     <label class="form-field">
-                        <span>Précisions d’adresse</span>
-                        <textarea name="address_details" rows="4" maxlength="2000" autocomplete="street-address" required><?= e($formValues['address_details']) ?></textarea>
-                        <small>Indique le quartier, un repère ou toute information utile au livreur.</small>
+                        <span>Précisions d'adresse</span>
+                        <textarea name="address_details" rows="3" maxlength="2000" autocomplete="street-address" placeholder="Quartier, rue, repère..." required><?= e($formValues['address_details']) ?></textarea>
+                        <small>Indique un repère ou toute information utile au livreur.</small>
                     </label>
-                    <button class="button button-primary" type="submit">Confirmer la commande</button>
+
+                    <button class="button button-primary checkout-submit-btn" type="submit">Confirmer la commande</button>
                 </form>
             </section>
 
-            <aside class="cart-summary checkout-summary">
-                <h2>Récapitulatif</h2>
+            <aside class="checkout-summary-card" aria-labelledby="checkout-summary-title">
+                <h2 class="checkout-card-title" id="checkout-summary-title">Récapitulatif</h2>
                 <ul class="checkout-items">
                     <?php foreach ($cartLines as $line): ?>
                         <li>
                             <span>
                                 <?= e($line['product_name']) ?>
                                 <?= $line['variant_label'] !== null ? ' — ' . e($line['variant_label']) : '' ?>
-                                × <?= e($line['quantity']) ?>
+                                <small>× <?= e($line['quantity']) ?></small>
                             </span>
                             <strong><?= e(format_price($line['pricing']['line_total'])) ?></strong>
                         </li>
                     <?php endforeach; ?>
                 </ul>
-                <p class="cart-summary-row"><span>Sous-total</span><strong><?= e(format_price($cartSubtotal)) ?></strong></p>
-                <p class="cart-summary-row">
-                    <span data-delivery-label>Livraison<?= $selectedCommune === null ? '' : ' (' . e($selectedCommune['name']) . ')' ?></span>
-                    <strong data-delivery-fee-output><?= $deliveryFeePreview === null ? 'Selon la commune' : e(format_price($deliveryFeePreview)) ?></strong>
-                </p>
-                <p class="cart-summary-row cart-summary-total">
-                    <span>Total estimé</span>
-                    <strong
-                        data-checkout-total
-                        data-subtotal="<?= e($cartSubtotal) ?>"
-                        data-maximum="<?= e(ORDER_AMOUNT_MAX) ?>"
-                    ><?= e($estimatedTotalLabel) ?></strong>
-                </p>
-                <p class="muted">Le stock sera confirmé par téléphone. Le paiement se fait à la livraison.</p>
+
+                <div class="checkout-totals">
+                    <div class="checkout-total-row"><span>Sous-total</span><span><?= e(format_price($cartSubtotal)) ?></span></div>
+                    <div class="checkout-total-row">
+                        <span data-delivery-label>Livraison</span>
+                        <span data-delivery-fee-output><?= $deliveryFeePreview === null ? 'À calculer' : e(format_price($deliveryFeePreview)) ?></span>
+                    </div>
+                    <div class="checkout-total-row grand-total">
+                        <span>Total</span>
+                        <span data-checkout-total data-subtotal="<?= e($cartSubtotal) ?>" data-maximum="<?= e(ORDER_AMOUNT_MAX) ?>"><?= e($estimatedTotalLabel) ?></span>
+                    </div>
+                </div>
+
+                <div class="checkout-trust">
+                    <p>🔒 Paiement à la livraison</p>
+                    <p>🚚 Livraison à Abidjan et hors Abidjan</p>
+                </div>
             </aside>
         </div>
     <?php endif; ?>

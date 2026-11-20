@@ -367,126 +367,127 @@ $formAction = $productId === null
     : site_url('admin/produit_form.php?id=' . $productId);
 require dirname(__DIR__) . '/includes/admin_header.php';
 ?>
-<div class="page-heading">
+<div class="page-heading admin-page-heading">
     <div>
         <p class="eyebrow">Catalogue</p>
         <h1><?= e($pageTitle) ?></h1>
     </div>
-    <a class="button button-secondary" href="<?= e(site_url('admin/produits.php')) ?>">Retour aux produits</a>
+    <a class="button button-secondary" href="<?= e(site_url('admin/produits.php')) ?>">← Retour aux produits</a>
 </div>
 
 <?php if ($errorMessage !== null): ?>
     <div class="notice notice-error" role="alert"><?= e($errorMessage) ?></div>
 <?php endif; ?>
 
-<form class="admin-card product-form" method="post" action="<?= e($formAction) ?>" enctype="multipart/form-data">
+<form class="product-form" method="post" action="<?= e($formAction) ?>" enctype="multipart/form-data">
     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
     <input type="hidden" name="action" value="save_product">
+    <!-- Champs cachés pour la compatibilité avec l'ancienne logique -->
+    <input type="hidden" name="wholesale_price" value="<?= e($product['wholesale_price'] !== '' ? $product['wholesale_price'] : ($product['retail_price'] !== '' ? $product['retail_price'] : '1')) ?>">
+    <input type="hidden" name="wholesale_min_quantity" value="<?= e($product['wholesale_min_quantity'] !== '' ? $product['wholesale_min_quantity'] : '1') ?>">
+    <input type="hidden" name="variants" value="<?= e($variantText) ?>">
 
-    <section class="form-section">
-        <h2>Informations du produit</h2>
-        <div class="form-grid">
-            <label class="form-field">
-                <span>Nom du produit</span>
-                <input type="text" name="name" maxlength="180" value="<?= e($product['name']) ?>" required>
-            </label>
-            <label class="form-field">
-                <span>Catégorie</span>
-                <select name="category_id" required>
-                    <option value="">Choisir une catégorie</option>
-                    <?php foreach ($categories as $category): ?>
-                        <option value="<?= e($category['id']) ?>" <?= (string) $product['category_id'] === (string) $category['id'] ? 'selected' : '' ?>>
-                            <?= e($category['name']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-                <?php if ($categories === []): ?>
-                    <small>Crée d’abord une catégorie depuis la page Catégories.</small>
-                <?php endif; ?>
-            </label>
-            <label class="form-field form-field-wide">
-                <span>Description</span>
-                <textarea name="description" rows="5" maxlength="20000"><?= e($product['description']) ?></textarea>
-            </label>
-        </div>
-    </section>
-
-    <section class="form-section">
-        <h2>Prix et stock</h2>
-        <div class="form-grid">
-            <label class="form-field">
-                <span>Prix détail (FCFA)</span>
-                <input type="number" name="retail_price" min="1" max="999999999999" step="1" value="<?= e($product['retail_price']) ?>" required>
-            </label>
-            <label class="form-field">
-                <span>Prix de gros (FCFA)</span>
-                <input type="number" name="wholesale_price" min="1" max="999999999999" step="1" value="<?= e($product['wholesale_price']) ?>" required>
-            </label>
-            <label class="form-field">
-                <span>Quantité minimale pour le prix de gros</span>
-                <input type="number" name="wholesale_min_quantity" min="1" max="4294967295" step="1" value="<?= e($product['wholesale_min_quantity']) ?>" required>
-            </label>
-            <label class="form-field">
-                <span>Stock en quantité</span>
-                <input type="number" name="stock" min="0" max="4294967295" step="1" value="<?= e($product['stock']) ?>" required>
-            </label>
-            <label class="form-field">
-                <span>Prix promotionnel (FCFA)</span>
-                <input type="number" name="promotion_price" min="1" max="999999999999" step="1" value="<?= e($product['promotion_price']) ?>">
-                <small>Utilisé seulement si la case « En promotion » est cochée.</small>
-            </label>
-        </div>
-        <div class="checkbox-grid">
-            <label class="checkbox-field">
-                <input type="checkbox" name="is_featured" value="1" <?= (int) $product['is_featured'] === 1 ? 'checked' : '' ?>>
-                <span>Produit vedette</span>
-            </label>
-            <label class="checkbox-field">
-                <input type="checkbox" name="is_on_promotion" value="1" <?= (int) $product['is_on_promotion'] === 1 ? 'checked' : '' ?>>
-                <span>En promotion</span>
-            </label>
-            <label class="checkbox-field">
-                <input type="checkbox" name="is_unavailable" value="1" <?= (int) $product['is_unavailable'] === 1 ? 'checked' : '' ?>>
-                <span>Indisponible</span>
-            </label>
-        </div>
-    </section>
-
-    <section class="form-section">
-        <h2>Variantes</h2>
-        <label class="form-field">
-            <span>Couleurs, modèles ou autres choix</span>
-            <textarea name="variants" rows="4" placeholder="Une variante par ligne"><?= e($variantText) ?></textarea>
-            <small>Laisse vide si le produit n’a pas de variante.</small>
-        </label>
-    </section>
-
-    <section class="form-section">
-        <h2>Photos</h2>
-        <label class="form-field">
-            <span>Ajouter des photos</span>
-            <input type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple>
-            <small>JPG, PNG ou WebP, 5 Mo maximum par photo. Les images seront redimensionnées à 1 600 px maximum.</small>
-        </label>
-
-        <?php if ($existingImages !== []): ?>
-            <div class="existing-images">
-                <?php foreach ($existingImages as $image): ?>
-                    <label class="existing-image">
-                        <img src="<?= e(site_url('uploads/products/' . rawurlencode((string) $image['file_name']))) ?>" alt="<?= e($image['alt_text'] ?? $product['name']) ?>">
-                        <span class="checkbox-field">
-                            <input type="checkbox" name="remove_images[]" value="<?= e($image['id']) ?>">
-                            <span>Retirer cette photo</span>
-                        </span>
+    <div class="form-layout-grid">
+        <!-- Colonne Principale (Infos + Description) -->
+        <div class="form-main-column">
+            <section class="admin-card">
+                <h2 class="admin-card-title">Informations générales</h2>
+                <div class="form-grid">
+                    <label class="form-field form-field-wide">
+                        <span>Nom du produit</span>
+                        <input type="text" name="name" maxlength="180" value="<?= e($product['name']) ?>" required placeholder="Ex: Perceuse Bosch 800W">
                     </label>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-    </section>
+                    <label class="form-field">
+                        <span>Catégorie</span>
+                        <select name="category_id" required>
+                            <option value="">Choisir une catégorie</option>
+                            <?php foreach ($categories as $category): ?>
+                                <option value="<?= e($category['id']) ?>" <?= (string) $product['category_id'] === (string) $category['id'] ? 'selected' : '' ?>>
+                                    <?= e($category['name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                </div>
+                <label class="form-field form-field-wide" style="margin-top: 16px;">
+                    <span>Description</span>
+                    <textarea name="description" rows="6" maxlength="20000" placeholder="Décris les caractéristiques, les dimensions, l'utilisation..."><?= e($product['description']) ?></textarea>
+                </label>
+            </section>
 
-    <div class="form-actions">
-        <button class="button button-primary" type="submit"><?= $productId === null ? 'Ajouter le produit' : 'Enregistrer les modifications' ?></button>
-        <a class="button button-secondary" href="<?= e(site_url('admin/produits.php')) ?>">Annuler</a>
+            <section class="admin-card">
+                <h2 class="admin-card-title">Prix et stock</h2>
+                <div class="form-grid">
+                    <label class="form-field">
+                        <span>Prix de vente (FCFA)</span>
+                        <input type="number" name="retail_price" min="1" max="999999999999" step="1" value="<?= e($product['retail_price']) ?>" required placeholder="Ex: 25000">
+                    </label>
+                    <label class="form-field">
+                        <span>Stock disponible</span>
+                        <input type="number" name="stock" min="0" max="4294967295" step="1" value="<?= e($product['stock']) ?>" required>
+                    </label>
+                </div>
+            </section>
+
+            <section class="admin-card">
+                <h2 class="admin-card-title">Photos</h2>
+                <label class="file-drop-zone">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                    <span>Cliquez pour ajouter des photos</span>
+                    <small>JPG, PNG ou WebP, max 5 Mo par photo.</small>
+                    <input type="file" name="images[]" accept="image/jpeg,image/png,image/webp" multiple>
+                </label>
+
+                <?php if ($existingImages !== []): ?>
+                    <div class="existing-images">
+                        <?php foreach ($existingImages as $image): ?>
+                            <label class="existing-image">
+                                <img src="<?= e(site_url('uploads/products/' . rawurlencode((string) $image['file_name']))) ?>" alt="">
+                                <span class="checkbox-field">
+                                    <input type="checkbox" name="remove_images[]" value="<?= e($image['id']) ?>">
+                                    <span>Retirer</span>
+                                </span>
+                            </label>
+                        <?php endforeach; ?>
+                    </div>
+                <?php endif; ?>
+            </section>
+        </div>
+
+        <!-- Colonne Latérale (Options & Statut) -->
+        <aside class="form-side-column">
+            <section class="admin-card">
+                <h2 class="admin-card-title">Options de vente</h2>
+                <div class="options-toggle-list">
+                    <label class="option-toggle">
+                        <span>Produit vedette</span>
+                        <input type="checkbox" name="is_featured" value="1" <?= (int) $product['is_featured'] === 1 ? 'checked' : '' ?>>
+                    </label>
+                    <label class="option-toggle">
+                        <span>En promotion</span>
+                        <input type="checkbox" name="is_on_promotion" value="1" <?= (int) $product['is_on_promotion'] === 1 ? 'checked' : '' ?>>
+                    </label>
+                    <label class="option-toggle">
+                        <span>Indisponible</span>
+                        <input type="checkbox" name="is_unavailable" value="1" <?= (int) $product['is_unavailable'] === 1 ? 'checked' : '' ?>>
+                    </label>
+                </div>
+
+                <label class="form-field" style="margin-top: 16px;">
+                    <span>Prix promotionnel (FCFA)</span>
+                    <input type="number" name="promotion_price" min="1" max="999999999999" step="1" value="<?= e($product['promotion_price']) ?>" placeholder="Uniquement si en promo">
+                </label>
+            </section>
+
+            <section class="admin-card">
+                <div class="form-actions-vertical">
+                    <button class="button button-primary" type="submit" style="width: 100%;">
+                        <?= $productId === null ? 'Ajouter le produit' : 'Enregistrer les modifications' ?>
+                    </button>
+                    <a class="button button-secondary" href="<?= e(site_url('admin/produits.php')) ?>" style="width: 100%; text-align: center;">Annuler</a>
+                </div>
+            </section>
+        </aside>
     </div>
 </form>
 <?php require dirname(__DIR__) . '/includes/admin_footer.php'; ?>

@@ -126,45 +126,44 @@ function authenticate_admin(string $username, string $password): ?array
     $passwordMatches = password_verify($password, $passwordHash);
     $isLocked = $account !== false && (int) $account['is_locked'] === 1;
 
-    if ($account === false || !$passwordMatches || $isLocked) {
-        if ($account !== false && !$isLocked) {
-            $attempts = (int) $account['failed_login_attempts'] + 1;
-            $update = $connection->prepare(
-                'UPDATE admins
-                 SET failed_login_attempts = :attempts,
-                     locked_until = CASE
-                         WHEN :attempts_for_lock >= :max_attempts
-                         THEN DATE_ADD(CURRENT_TIMESTAMP, INTERVAL 15 MINUTE)
-                         ELSE NULL
-                     END
-                 WHERE id = :id'
-            );
-            $update->execute([
-                'attempts' => $attempts,
-                'attempts_for_lock' => $attempts,
-                'max_attempts' => ADMIN_LOGIN_MAX_ATTEMPTS,
-                'id' => $account['id'],
-            ]);
-        }
-
+    if ($account !== false && !$isLocked && $passwordMatches) {
+        $reset = $connection->prepare(
+            'UPDATE admins
+             SET failed_login_attempts = 0, locked_until = NULL
+             WHERE id = :id'
+        );
+        $reset->execute(['id' => $account['id']]);
         $connection->commit();
-        return null;
+
+        return [
+            'id' => (int) $account['id'],
+            'username' => (string) $account['username'],
+            'name' => (string) $account['full_name'],
+            'must_change_password' => (bool) $account['must_change_password'],
+        ];
     }
 
-    $reset = $connection->prepare(
+    $attempts = (int) $account['failed_login_attempts'] + 1;
+    $lockedUntil = $attempts >= ADMIN_LOGIN_MAX_ATTEMPTS
+        ? (new DateTimeImmutable())
+            ->modify('+' . ADMIN_LOGIN_LOCK_MINUTES . ' minutes')
+            ->format('Y-m-d H:i:s')
+        : null;
+
+    $update = $connection->prepare(
         'UPDATE admins
-         SET failed_login_attempts = 0, locked_until = NULL
+         SET failed_login_attempts = :attempts,
+              locked_until = :locked_until
          WHERE id = :id'
     );
-    $reset->execute(['id' => $account['id']]);
-    $connection->commit();
+    $update->execute([
+        'attempts' => $attempts,
+        'locked_until' => $lockedUntil,
+        'id' => $account['id'],
+    ]);
 
-    return [
-        'id' => (int) $account['id'],
-        'username' => (string) $account['username'],
-        'name' => (string) $account['full_name'],
-        'must_change_password' => (bool) $account['must_change_password'],
-    ];
+    $connection->commit();
+    return null;
 }
 
 function admin_redirect(string $path): void

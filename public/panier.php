@@ -5,6 +5,44 @@ require_once dirname(__DIR__) . '/includes/cart.php';
 
 $cartLines = cart_catalog_lines();
 $cartSubtotal = cart_subtotal($cartLines);
+$coverByProduct = [];
+$communes = [];
+$deliveryFees = ['abidjan' => null, 'hors_abidjan' => null];
+if ($cartLines !== []) {
+    $productIds = array_values(array_unique(array_map(
+        static fn(array $line): int => (int) $line['product_id'],
+        $cartLines
+    )));
+    $placeholders = [];
+    $parameters = [];
+    foreach ($productIds as $index => $productId) {
+        $key = 'product_' . $index;
+        $placeholders[] = ':' . $key;
+        $parameters[$key] = $productId;
+    }
+    $imageQuery = db()->prepare(
+        'SELECT product_id, file_name
+         FROM product_images
+         WHERE product_id IN (' . implode(', ', $placeholders) . ')
+         ORDER BY product_id, display_order, id'
+    );
+    $imageQuery->execute($parameters);
+    foreach ($imageQuery->fetchAll() as $image) {
+        $coverByProduct[(int) $image['product_id']] ??= (string) $image['file_name'];
+    }
+
+    $communes = db()->query(
+        'SELECT id, name, zone
+         FROM communes
+         WHERE is_active = 1
+         ORDER BY zone, display_order, name'
+    )->fetchAll();
+    $settings = site_settings();
+    $deliveryFees = [
+        'abidjan' => cart_amount(required_setting($settings, 'delivery_fee_abidjan'), 'livraison à Abidjan'),
+        'hors_abidjan' => cart_amount(required_setting($settings, 'delivery_fee_outside_abidjan'), 'livraison hors Abidjan'),
+    ];
+}
 $flash = consume_cart_flash();
 $pageTitle = 'Mon panier';
 require dirname(__DIR__) . '/includes/header.php';
@@ -32,6 +70,13 @@ require dirname(__DIR__) . '/includes/header.php';
             <div class="cart-lines">
                 <?php foreach ($cartLines as $line): ?>
                     <article class="cart-line">
+                        <a class="cart-line-image" href="<?= e(site_url('public/produit.php?id=' . (int) $line['product_id'])) ?>" aria-label="Voir <?= e($line['product_name']) ?>">
+                            <?php if (isset($coverByProduct[$line['product_id']])): ?>
+                                <img src="<?= e(site_url('uploads/products/' . rawurlencode($coverByProduct[$line['product_id']]))) ?>" alt="" loading="lazy">
+                            <?php else: ?>
+                                <span aria-hidden="true">BL</span>
+                            <?php endif; ?>
+                        </a>
                         <div class="cart-line-product">
                             <h2><?= e($line['product_name']) ?></h2>
                             <?php if ($line['variant_label'] !== null): ?>
@@ -48,29 +93,22 @@ require dirname(__DIR__) . '/includes/header.php';
                             <div class="cart-line-price">
                                 <span>Prix unitaire</span>
                                 <strong><?= e(format_price($line['pricing']['unit_price'])) ?></strong>
-                                <small>
-                                    Prix de <?= $line['pricing']['price_type'] === 'gros' ? 'gros' : 'détail' ?>
-                                    <?= $line['pricing']['is_promotion'] ? ' · promotion incluse' : '' ?>
-                                </small>
+                                <small><?= $line['pricing']['is_promotion'] ? ' · promotion incluse' : '' ?></small>
                             </div>
                         <?php endif; ?>
 
-                        <form class="cart-line-quantity" method="post" action="<?= e(site_url('public/cart_action.php')) ?>">
+                        <form class="cart-line-quantity" method="post" action="<?= e(site_url('public/cart_action.php')) ?>" data-cart-quantity-form>
                             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                             <input type="hidden" name="action" value="update">
                             <input type="hidden" name="product_id" value="<?= e($line['product_id']) ?>">
                             <input type="hidden" name="variant_id" value="<?= e($line['variant_id'] ?? '') ?>">
                             <label class="form-field">
                                 <span>Quantité</span>
-                                <input
-                                    type="number"
-                                    name="quantity"
-                                    min="1"
-                                    max="<?= e(CART_MAX_QUANTITY) ?>"
-                                    step="1"
-                                    value="<?= e($line['quantity']) ?>"
-                                    required
-                                >
+                                <div class="quantity-stepper" data-quantity-stepper>
+                                    <button type="button" data-quantity-decrease aria-label="Diminuer la quantite">&minus;</button>
+                                    <input type="number" name="quantity" min="1" max="<?= e(CART_MAX_QUANTITY) ?>" step="1" value="<?= e($line['quantity']) ?>" aria-label="Quantite" required>
+                                    <button type="button" data-quantity-increase aria-label="Augmenter la quantite">+</button>
+                                </div>
                             </label>
                             <button class="button button-secondary" type="submit">Mettre à jour</button>
                         </form>
@@ -89,7 +127,9 @@ require dirname(__DIR__) . '/includes/header.php';
                             <input type="hidden" name="action" value="remove">
                             <input type="hidden" name="product_id" value="<?= e($line['product_id']) ?>">
                             <input type="hidden" name="variant_id" value="<?= e($line['variant_id'] ?? '') ?>">
-                            <button class="text-link cart-remove" type="submit">Retirer</button>
+                            <button class="text-link cart-remove" type="submit" aria-label="Supprimer <?= e($line['product_name']) ?>">
+                                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 6h18M8 6V4h8v2m3 0-1 14H6L5 6m4 4v6m6-6v6"/></svg>
+                            </button>
                         </form>
                     </article>
                 <?php endforeach; ?>
@@ -102,6 +142,19 @@ require dirname(__DIR__) . '/includes/header.php';
                     <p class="cart-summary-row"><span>Sous-total</span><strong>À recalculer</strong></p>
                 <?php else: ?>
                     <p class="cart-summary-row"><span>Sous-total</span><strong><?= e(format_price($cartSubtotal)) ?></strong></p>
+                    <label class="form-field cart-delivery-field">
+                        <span>Estimer la livraison</span>
+                        <select data-cart-delivery-preview data-subtotal="<?= e($cartSubtotal) ?>" data-maximum="<?= e(ORDER_AMOUNT_MAX) ?>">
+                            <option value="">Choisir une commune</option>
+                            <?php foreach ($communes as $commune): ?>
+                                <option value="<?= e($commune['id']) ?>" data-fee="<?= e($deliveryFees[$commune['zone']]) ?>" data-name="<?= e($commune['name']) ?>">
+                                    <?= e($commune['name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </label>
+                    <p class="cart-summary-row"><span data-cart-delivery-label>Frais de livraison</span><strong data-cart-delivery-output>Choisis une commune</strong></p>
+                    <p class="cart-summary-row cart-summary-total"><span>Total estimé</span><strong data-cart-total-output>Choisis une commune</strong></p>
                     <p class="muted">Les frais de livraison seront calculés selon la commune choisie à l’étape suivante.</p>
                 <?php endif; ?>
                 <?php if ($cartSubtotal === false): ?>

@@ -187,49 +187,79 @@ require dirname(__DIR__) . '/includes/header.php';
         <div class="notice notice-error" role="alert"><?= e($filterError) ?></div>
     <?php endif; ?>
 
-    <section class="filters-panel" aria-label="Filtres du catalogue">
-        <button class="button button-secondary btn-toggle-filters" type="button" aria-expanded="false" aria-controls="filters-form">
-            Filtres
-        </button>
-        <div class="filters-content" id="filters-form" hidden>
-            <form class="filters-grid" method="get" action="<?= e(site_url('public/catalogue.php')) ?>">
-            <input type="hidden" name="q" value="<?= e($searchQuery) ?>">
-            <label class="form-field">
-                <span>Catégorie</span>
-                <select name="category_id">
-                    <option value="">Toutes les catégories</option>
-                    <?php foreach ($categories as $category): ?>
-                        <option value="<?= e($category['id']) ?>" <?= $categoryId === (int) $category['id'] ? 'selected' : '' ?>>
-                            <?= e($category['name']) ?>
-                        </option>
-                    <?php endforeach; ?>
-                </select>
-            </label>
-            <label class="form-field">
-                <span>Prix minimum (FCFA)</span>
-                <input type="number" name="min_price" min="0" max="999999999999" step="1" value="<?= $minimumPrice === null || $minimumPrice === false ? '' : e($minimumPrice) ?>">
-            </label>
-            <label class="form-field">
-                <span>Prix maximum (FCFA)</span>
-                <input type="number" name="max_price" min="0" max="999999999999" step="1" value="<?= $maximumPrice === null || $maximumPrice === false ? '' : e($maximumPrice) ?>">
-            </label>
-            <label class="form-field">
-                <span>Disponibilité</span>
-                <select name="availability">
-                    <option value="">Tous les produits</option>
-                    <option value="available" <?= $availability === 'available' ? 'selected' : '' ?>>Disponibles</option>
-                    <option value="unavailable" <?= $availability === 'unavailable' ? 'selected' : '' ?>>Indisponibles</option>
-                </select>
-            </label>
-            <label class="checkbox-field filter-promotion">
-                <input type="checkbox" name="promotion" value="1" <?= $promotionOnly ? 'checked' : '' ?>>
-                <span>En promotion</span>
-            </label>
-            <div class="filter-actions">
-                <button class="button button-primary" type="submit">Appliquer les filtres</button>
-                <a class="text-link" href="<?= e(site_url('public/catalogue.php')) ?>">Effacer</a>
+    <?php if ($searchQuery === '' && $categoryId === null && $promotionOnly === false): ?>
+        <section class="catalogue-banner" aria-label="Livraison et contact">
+            <div class="catalogue-banner-content">
+                <div class="catalogue-banner-text">
+                    <p class="eyebrow">Découvrez Berluxe</p>
+                    <h2>L'outillage et la maison,<br>au même endroit.</h2>
+                    <p>Paiement à la livraison. Livraison à Abidjan et hors Abidjan.</p>
+                </div>
+                <div class="catalogue-banner-actions">
+                    <a href="<?= e(site_url(CATALOGUE_PATH . '?promotion=1')) ?>" class="button button-primary">Voir les promos</a>
+                    <a href="https://wa.me/2250102030405" target="_blank" rel="noopener" class="button button-secondary">Nous contacter</a>
+                </div>
             </div>
-        </form>
+        </section>
+    <?php endif; ?>
+
+        <div class="catalogue-toolbar">
+        <p class="result-count"><?= count($products) ?> produit(s)</p>
+        <button type="button" class="btn-open-filters" id="btn-open-filters" aria-controls="filters-drawer" aria-expanded="false">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+            Filtrer
+        </button>
+    </div>
+
+    <!-- L'overlay (fond sombre) -->
+    <div class="filters-overlay" id="filters-overlay"></div>
+
+    <!-- Le tiroir (drawer) -->
+    <section class="filters-panel" id="filters-drawer" aria-label="Filtres du catalogue">
+        <div class="filters-header">
+            <h2>Filtres</h2>
+            <button type="button" class="btn-close-filters" id="btn-close-filters" aria-label="Fermer les filtres">&times;</button>
+        </div>
+
+        <div class="filters-content">
+            <form class="filters-grid" method="get" action="<?= e(site_url('public/catalogue.php')) ?>">
+                <input type="hidden" name="q" value="<?= e($searchQuery) ?>">
+                <label class="form-field">
+                    <span>Catégorie</span>
+                    <select name="category_id">
+                        <option value="">Toutes les catégories</option>
+                        <?php foreach ($categories as $category): ?>
+                            <option value="<?= e($category['id']) ?>" <?= $categoryId === (int) $category['id'] ? 'selected' : '' ?>>
+                                <?= e($category['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </label>
+                <label class="form-field">
+                    <span>Prix minimum (FCFA)</span>
+                    <input type="number" name="min_price" min="0" max="999999999999" step="1" value="<?= $minimumPrice === null || $minimumPrice === false ? '' : e($minimumPrice) ?>">
+                </label>
+                <label class="form-field">
+                    <span>Prix maximum (FCFA)</span>
+                    <input type="number" name="max_price" min="0" max="999999999999" step="1" value="<?= $maximumPrice === null || $maximumPrice === false ? '' : e($maximumPrice) ?>">
+                </label>
+                <label class="form-field">
+                    <span>Disponibilité</span>
+                    <select name="availability">
+                        <option value="">Tous les produits</option>
+                        <option value="available" <?= $availability === 'available' ? 'selected' : '' ?>>Disponibles</option>
+                        <option value="unavailable" <?= $availability === 'unavailable' ? 'selected' : '' ?>>Indisponibles</option>
+                    </select>
+                </label>
+                <label class="checkbox-field filter-promotion">
+                    <input type="checkbox" name="promotion" value="1" <?= $promotionOnly ? 'checked' : '' ?>>
+                    <span>En promotion</span>
+                </label>
+                <div class="filter-actions">
+                    <button class="button button-primary" type="submit">Appliquer les filtres</button>
+                    <a class="text-link" href="<?= e(site_url('public/catalogue.php')) ?>">Effacer</a>
+                </div>
+            </form>
         </div>
     </section>
 
@@ -239,7 +269,6 @@ require dirname(__DIR__) . '/includes/header.php';
         <?php elseif ($products === []): ?>
             <p class="empty-state">Aucun produit ne correspond à ces critères.</p>
         <?php else: ?>
-            <p class="result-count"><?= count($products) ?> produit(s)</p>
             <div class="product-grid">
                 <?php foreach ($products as $product): ?>
                     <?php require dirname(__DIR__) . '/includes/product_card.php'; ?>

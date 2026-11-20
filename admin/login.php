@@ -11,6 +11,7 @@ if (current_admin() !== null) {
 $pageTitle = 'Connexion';
 $errorMessage = null;
 $username = '';
+$hideAdminHeader = true;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $postedToken = $_POST['csrf_token'] ?? null;
@@ -49,10 +50,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 require dirname(__DIR__) . '/includes/admin_header.php';
 ?>
-<section class="admin-card login-card">
-    <p class="eyebrow">Espace sécurisé</p>
-    <h1>Connexion</h1>
-    <p class="form-intro">Connecte-toi pour gérer la boutique Berluxe.</p>
+<div class="login-split-layout">
+    <div class="login-split-image">
+        <div class="login-image-overlay">
+            <h2>Bienvenue chez Berluxe</h2>
+            <p>G&eacute;rez votre boutique, vos produits et vos commandes en toute simplicit&eacute;.</p>
+        </div>
+    </div>
+    <div class="login-split-form">
+        <div class="login-logo">
+            <?php if (logo_url() !== null): ?>
+                <img src="<?= e(logo_url()) ?>" alt="<?= e(SITE_NAME) ?>">
+            <?php else: ?>
+                <span class="brand-name"><?= e(SITE_NAME) ?></span>
+            <?php endif; ?>
+        </div>
+    <div class="login-header">
+            <h1>Connexion</h1>
+            <p>Entrez vos identifiants pour acc&eacute;der &agrave; l&#39;administration.</p>
+        </div>
 
     <?php if ($errorMessage !== null): ?>
         <div class="notice notice-error" role="alert"><?= e($errorMessage) ?></div>
@@ -70,5 +86,6 @@ require dirname(__DIR__) . '/includes/admin_header.php';
         </label>
         <button class="button button-primary" type="submit">Se connecter</button>
     </form>
-</section>
+    </div>
+</div>
 <?php require dirname(__DIR__) . '/includes/admin_footer.php'; ?>

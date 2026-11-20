@@ -1,5 +1,0 @@
-admin : localhost/berluxe/admin/login.php
-
-roxane : Roxane123456789
-soum-boy : Soum0747972894
-

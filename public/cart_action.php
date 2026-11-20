@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+ini_set('display_errors', '0');
+error_reporting(0);
+
 require_once dirname(__DIR__) . '/includes/cart.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -82,17 +85,19 @@ try {
             throw new InvalidArgumentException('Ce produit est actuellement indisponible.');
         }
 
-        $variantsQuery = db()->prepare(
+        $variantQuery = db()->prepare(
             'SELECT id
              FROM product_variants
-             WHERE product_id = :product_id'
+             WHERE product_id = :product_id
+             ORDER BY display_order, id'
         );
-        $variantsQuery->execute(['product_id' => $productId]);
-        $variantIds = array_map('intval', array_column($variantsQuery->fetchAll(), 'id'));
-        if (($variantIds === [] && $variantId !== null)
-            || ($variantIds !== [] && ($variantId === null || !in_array($variantId, $variantIds, true)))
-        ) {
-            throw new InvalidArgumentException('Choisis une variante valide pour ce produit.');
+        $variantQuery->execute(['product_id' => $productId]);
+        $productVariantIds = array_map('intval', $variantQuery->fetchAll(PDO::FETCH_COLUMN));
+        if ($productVariantIds !== [] && $variantId === null) {
+            throw new InvalidArgumentException('Choisis une option pour ce produit.');
+        }
+        if ($variantId !== null && !in_array($variantId, $productVariantIds, true)) {
+            throw new InvalidArgumentException('Cette option ne correspond pas au produit sélectionné.');
         }
 
         cart_add_line($productId, $variantId, $quantity);

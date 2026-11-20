@@ -48,45 +48,54 @@ require dirname(__DIR__) . '/includes/header.php';
 ?>
 <div class="container storefront-main">
     <?php if ($order === false): ?>
-        <section class="storefront-heading">
-            <p class="eyebrow">Berluxe</p>
+        <section class="confirmation-error">
+            <div class="error-icon">❌</div>
             <h1>Commande introuvable</h1>
-            <p class="muted">Cette confirmation n’est pas accessible depuis cette session.</p>
-            <a class="button button-secondary" href="<?= e(site_url('public/index.php')) ?>">Retour à l’accueil</a>
+            <p class="muted">Cette confirmation n'est pas accessible depuis cette session.</p>
+            <a class="button button-primary" href="<?= e(site_url('public/index.php')) ?>">Retour à l'accueil</a>
         </section>
     <?php else: ?>
-        <section class="storefront-heading">
-            <p class="eyebrow">Merci pour ta confiance</p>
-            <h1>Commande enregistrée</h1>
-            <p class="muted">Ta commande est enregistrée sous le numéro <strong><?= e($order['order_number']) ?></strong>.</p>
+        <section class="confirmation-success">
+            <div class="success-icon">✓</div>
+            <h1>Merci pour ta commande !</h1>
+            <p class="muted">Ta commande a bien été enregistrée sous le numéro :</p>
+            <p class="order-number-highlight"><?= e($order['order_number']) ?></p>
             <p class="muted">Roxane te contactera sur WhatsApp pour confirmer la disponibilité. Le paiement se fera à la livraison.</p>
         </section>
 
-        <section class="order-confirmation-card" aria-label="Récapitulatif de la commande">
-            <h2>Récapitulatif</h2>
-            <p><strong>Client :</strong> <?= e($order['customer_first_name'] . ' ' . $order['customer_last_name']) ?></p>
-            <p><strong>Téléphone WhatsApp :</strong> <?= e($order['customer_phone']) ?></p>
-            <p><strong>Livraison :</strong> <?= e($order['commune_name_snapshot']) ?> — <?= $order['delivery_zone'] === 'abidjan' ? 'Abidjan' : 'Hors Abidjan' ?></p>
-            <p><strong>Adresse :</strong><br><?= nl2br(e($order['address_details'])) ?></p>
+        <section class="confirmation-recap">
+            <h2>Récapitulatif de la commande</h2>
+            
+            <div class="recap-client-info">
+                <p><strong><?= e($order['customer_first_name'] . ' ' . $order['customer_last_name']) ?></strong></p>
+                <p><?= e($order['customer_phone']) ?></p>
+                <p><?= e($order['commune_name_snapshot']) ?> — <?= $order['delivery_zone'] === 'abidjan' ? 'Abidjan' : 'Hors Abidjan' ?></p>
+                <p class="muted" style="font-size: 0.9rem;"><?= nl2br(e($order['address_details'])) ?></p>
+            </div>
 
             <ul class="checkout-items order-items">
                 <?php foreach ($orderItems as $item): ?>
                     <li>
                         <span>
                             <?= e($item['product_name_snapshot']) ?>
-                            <?= $item['variant_label_snapshot'] !== null ? ' — ' . e($item['variant_label_snapshot']) : '' ?>
-                            × <?= e($item['quantity']) ?>
-                            <small><?= $item['price_type'] === 'gros' ? 'Prix de gros' : 'Prix détail' ?><?= (int) $item['is_promotion'] === 1 ? ' · promotion' : '' ?></small>
+                            <small>× <?= e($item['quantity']) ?></small>
                         </span>
                         <strong><?= e(format_price((int) $item['applied_price'] * (int) $item['quantity'])) ?></strong>
                     </li>
                 <?php endforeach; ?>
             </ul>
-            <p class="cart-summary-row"><span>Sous-total</span><strong><?= e(format_price($order['subtotal'])) ?></strong></p>
-            <p class="cart-summary-row"><span>Livraison</span><strong><?= e(format_price($order['delivery_fee'])) ?></strong></p>
-            <p class="cart-summary-row cart-summary-total"><span>Total à payer à la livraison</span><strong><?= e(format_price($order['total'])) ?></strong></p>
+
+            <div class="checkout-totals">
+                <div class="checkout-total-row"><span>Sous-total</span><span><?= e(format_price($order['subtotal'])) ?></span></div>
+                <div class="checkout-total-row"><span>Livraison</span><span><?= e(format_price($order['delivery_fee'])) ?></span></div>
+                <div class="checkout-total-row grand-total"><span>Total à payer</span><span><?= e(format_price($order['total'])) ?></span></div>
+            </div>
         </section>
-        <a class="button button-primary" href="<?= e(site_url('public/catalogue.php')) ?>">Continuer mes achats</a>
+
+        <div class="confirmation-actions">
+            <a class="button button-primary" href="<?= e(site_url('public/catalogue.php')) ?>">Continuer mes achats</a>
+        </div>
     <?php endif; ?>
 </div>
 <?php require dirname(__DIR__) . '/includes/footer.php'; ?>
+

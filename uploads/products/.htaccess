@@ -1,4 +1,6 @@
 Options -Indexes
-<FilesMatch "\.(?i:php[0-9]*|phtml|phar)$">
-    Require all denied
+
+<FilesMatch "\.(php|phtml|phar|cgi|pl|py|sh|asp|aspx|jsp)$">
+    Order deny,allow
+    Deny from all
 </FilesMatch>

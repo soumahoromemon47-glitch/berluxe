@@ -1,4 +1,10 @@
+<?php if (isset($hideAdminHeader) && $hideAdminHeader === true): ?>
     </main>
-    <script src="<?= e(site_url('assets/js/app.js?v=' . filemtime(__DIR__ . '/../assets/js/app.js'))) ?>" defer></script>
+<?php else: ?>
+            </main>
+        </div>
+    </div>
+<?php endif; ?>
+    <script src="<?= e(site_url('assets/js/app.js')) ?>" defer></script>
 </body>
 </html>

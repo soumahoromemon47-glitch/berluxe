@@ -229,11 +229,11 @@ $communes = db()->query(
 $pageTitle = 'Réglages';
 require dirname(__DIR__) . '/includes/admin_header.php';
 ?>
-<div class="page-heading">
+<div class="page-heading admin-page-heading">
     <div>
-        <p class="eyebrow">Administration Berluxe</p>
+        <p class="eyebrow">Administration</p>
         <h1>Réglages</h1>
-        <p class="form-intro">Gère les frais de livraison, les zones proposées et les alertes de stock.</p>
+        <p class="muted">Gère les frais de livraison, les zones et les alertes de stock.</p>
     </div>
 </div>
 
@@ -241,47 +241,78 @@ require dirname(__DIR__) . '/includes/admin_header.php';
     <div class="notice notice-error" role="alert"><?= e($errorMessage) ?></div>
 <?php endif; ?>
 
-<section class="admin-card">
-    <h2>Livraison et stock</h2>
-    <form class="form-grid" method="post" action="<?= e(site_url('admin/reglages.php')) ?>">
+<section class="admin-card settings-card">
+    <h2 class="admin-card-title">Livraison et stock</h2>
+    <form method="post" action="<?= e(site_url('admin/reglages.php')) ?>">
         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="action" value="save_settings">
-        <label class="form-field">
-            <span>Frais de livraison à Abidjan (FCFA)</span>
-            <input type="number" name="delivery_fee_abidjan" min="0" step="1" value="<?= e($deliveryAbidjan) ?>" required>
-        </label>
-        <label class="form-field">
-            <span>Frais de livraison hors Abidjan (FCFA)</span>
-            <input type="number" name="delivery_fee_outside_abidjan" min="0" step="1" value="<?= e($deliveryOutside) ?>" required>
-        </label>
-        <label class="form-field">
-            <span>Seuil d’alerte de stock bas</span>
-            <input type="number" name="stock_alert_threshold" min="1" step="1" value="<?= e($stockThreshold) ?>" required>
-        </label>
-        <div class="form-actions">
+
+        <div class="settings-grid">
+            <div class="setting-item">
+                <label class="form-field">
+                    <span>Frais de livraison à Abidjan (FCFA)</span>
+                    <div class="input-with-icon">
+                        <span class="input-icon" aria-hidden="true">🚚</span>
+                        <input type="number" name="delivery_fee_abidjan" min="0" step="1" value="<?= e($deliveryAbidjan) ?>" required>
+                    </div>
+                </label>
+            </div>
+            <div class="setting-item">
+                <label class="form-field">
+                    <span>Frais de livraison hors Abidjan (FCFA)</span>
+                    <div class="input-with-icon">
+                        <span class="input-icon" aria-hidden="true">🚛</span>
+                        <input type="number" name="delivery_fee_outside_abidjan" min="0" step="1" value="<?= e($deliveryOutside) ?>" required>
+                    </div>
+                </label>
+            </div>
+            <div class="setting-item">
+                <label class="form-field">
+                    <span>Seuil d'alerte de stock bas</span>
+                    <div class="input-with-icon">
+                        <span class="input-icon" aria-hidden="true">⚠️</span>
+                        <input type="number" name="stock_alert_threshold" min="1" step="1" value="<?= e($stockThreshold) ?>" required>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="form-actions settings-actions">
             <button class="button button-primary" type="submit">Enregistrer les réglages</button>
         </div>
     </form>
 </section>
 
-<section class="admin-card">
-    <div class="section-heading">
+<section class="admin-card communes-settings-card">
+    <div class="section-heading-row">
         <div>
-            <h2>Communes et quartiers</h2>
-            <p class="muted">Désactive une zone plutôt que de la supprimer pour conserver l’historique des commandes.</p>
+            <h2 class="admin-card-title">Communes et quartiers</h2>
+            <p class="muted">Gère les zones de livraison proposées aux clients.</p>
         </div>
     </div>
 
-    <div class="commune-list">
+    <div class="commune-list-modern">
         <?php foreach ($communes as $commune): ?>
             <?php $formId = 'commune-form-' . (int) $commune['id']; ?>
-            <article class="commune-row">
+            <article class="commune-card">
                 <form id="<?= e($formId) ?>" method="post" action="<?= e(site_url('admin/reglages.php')) ?>">
                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="action" value="update_commune">
                     <input type="hidden" name="commune_id" value="<?= e($commune['id']) ?>">
                 </form>
-                <div class="commune-fields">
+
+                <div class="commune-card-header">
+                    <span class="commune-zone-badge <?= $commune['zone'] === 'abidjan' ? 'zone-abidjan' : 'zone-hors' ?>">
+                        <?= $commune['zone'] === 'abidjan' ? 'Abidjan' : 'Hors Abidjan' ?>
+                    </span>
+                    <?php if ((int) $commune['is_active'] === 1): ?>
+                        <span class="commune-status-badge active">Active</span>
+                    <?php else: ?>
+                        <span class="commune-status-badge inactive">Désactivée</span>
+                    <?php endif; ?>
+                </div>
+
+                <div class="commune-card-body">
                     <label class="form-field">
                         <span>Nom</span>
                         <input form="<?= e($formId) ?>" type="text" name="commune_name" maxlength="140" value="<?= e($commune['name']) ?>" required>
@@ -293,13 +324,16 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                             <option value="hors_abidjan" <?= $commune['zone'] === 'hors_abidjan' ? 'selected' : '' ?>>Hors Abidjan</option>
                         </select>
                     </label>
-                    <label class="form-field order-field">
+                    <label class="form-field">
                         <span>Ordre</span>
                         <input form="<?= e($formId) ?>" type="number" name="display_order" min="0" step="1" value="<?= e($commune['display_order']) ?>" required>
                     </label>
+                </div>
+
+                <div class="commune-card-footer">
                     <label class="checkbox-field">
                         <input form="<?= e($formId) ?>" type="checkbox" name="is_active" value="1" <?= (int) $commune['is_active'] === 1 ? 'checked' : '' ?>>
-                        <span>Active</span>
+                        <span>Active (visible aux clients)</span>
                     </label>
                     <button class="button button-secondary" form="<?= e($formId) ?>" type="submit">Enregistrer</button>
                 </div>
@@ -307,14 +341,14 @@ require dirname(__DIR__) . '/includes/admin_header.php';
         <?php endforeach; ?>
     </div>
 
-    <div class="add-commune">
-        <h3>Ajouter une commune ou un quartier</h3>
-        <form class="form-grid commune-add-form" method="post" action="<?= e(site_url('admin/reglages.php')) ?>">
+    <div class="add-commune-modern">
+        <h3>Ajouter une commune</h3>
+        <form class="commune-add-form" method="post" action="<?= e(site_url('admin/reglages.php')) ?>">
             <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
             <input type="hidden" name="action" value="add_commune">
             <label class="form-field">
-                <span>Nom</span>
-                <input type="text" name="commune_name" maxlength="140" value="<?= e($newCommuneName) ?>" required>
+                <span>Nom de la commune ou du quartier</span>
+                <input type="text" name="commune_name" maxlength="140" value="<?= e($newCommuneName) ?>" placeholder="Ex : Yopougon" required>
             </label>
             <label class="form-field">
                 <span>Zone</span>
@@ -324,7 +358,7 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                 </select>
             </label>
             <div class="form-actions">
-                <button class="button button-primary" type="submit">Ajouter</button>
+                <button class="button button-primary" type="submit">Ajouter la commune</button>
             </div>
         </form>
     </div>

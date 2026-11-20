@@ -65,33 +65,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 require dirname(__DIR__) . '/includes/admin_header.php';
 ?>
-<section class="admin-card narrow-card">
-    <p class="eyebrow">Sécurité du compte</p>
-    <h1><?= $admin['must_change_password'] ? 'Choisis un nouveau mot de passe' : 'Changer le mot de passe' ?></h1>
-    <?php if ($admin['must_change_password']): ?>
-        <p class="form-intro">Le mot de passe provisoire doit être remplacé avant de continuer.</p>
-    <?php endif; ?>
+<div class="page-heading admin-page-heading">
+    <div>
+        <p class="eyebrow">Sécurité</p>
+        <h1>Mot de passe</h1>
+        <p class="muted"><?= $admin['must_change_password'] ? 'Le mot de passe provisoire doit être remplacé avant de continuer.' : 'Modifie ton mot de passe pour sécuriser ton compte.' ?></p>
+    </div>
+</div>
 
-    <?php if ($errorMessage !== null): ?>
-        <div class="notice notice-error" role="alert"><?= e($errorMessage) ?></div>
-    <?php endif; ?>
+<?php if ($errorMessage !== null): ?>
+    <div class="notice notice-error" role="alert"><?= e($errorMessage) ?></div>
+<?php endif; ?>
 
-    <form class="form-stack" method="post" action="<?= e(site_url('admin/password.php')) ?>">
-        <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
-        <label class="form-field">
-            <span>Mot de passe actuel</span>
-            <input type="password" name="current_password" autocomplete="current-password" required>
-        </label>
-        <label class="form-field">
-            <span>Nouveau mot de passe</span>
-            <input type="password" name="new_password" minlength="12" maxlength="4096" autocomplete="new-password" required>
-            <small>12 caractères minimum.</small>
-        </label>
-        <label class="form-field">
-            <span>Confirmer le nouveau mot de passe</span>
-            <input type="password" name="confirm_password" minlength="12" maxlength="4096" autocomplete="new-password" required>
-        </label>
-        <button class="button button-primary" type="submit">Enregistrer le mot de passe</button>
-    </form>
-</section>
+<div class="password-card-wrapper">
+    <section class="admin-card password-card">
+        <div class="password-header">
+            <div class="password-icon" aria-hidden="true">🔒</div>
+            <h2><?= $admin['must_change_password'] ? 'Choisis un nouveau mot de passe' : 'Changer le mot de passe' ?></h2>
+            <p>Choisis un mot de passe solide d'au moins 12 caractères.</p>
+        </div>
+
+        <form class="form-stack" method="post" action="<?= e(site_url('admin/password.php')) ?>">
+            <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
+
+            <label class="form-field">
+                <span>Mot de passe actuel</span>
+                <input type="password" name="current_password" autocomplete="current-password" required placeholder="••••••••••••">
+            </label>
+
+            <label class="form-field">
+                <span>Nouveau mot de passe</span>
+                <input type="password" name="new_password" minlength="12" maxlength="4096" autocomplete="new-password" required placeholder="Minimum 12 caractères">
+                <small>Utilise des lettres, des chiffres et des caractères spéciaux.</small>
+            </label>
+
+            <label class="form-field">
+                <span>Confirmer le nouveau mot de passe</span>
+                <input type="password" name="confirm_password" minlength="12" maxlength="4096" autocomplete="new-password" required placeholder="Retape le nouveau mot de passe">
+            </label>
+
+            <button class="button button-primary" type="submit">
+                Enregistrer le mot de passe
+            </button>
+        </form>
+    </section>
+</div>
 <?php require dirname(__DIR__) . '/includes/admin_footer.php'; ?>

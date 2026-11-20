@@ -216,17 +216,15 @@ $pageTitle = 'Commande ' . (string) $order['order_number'];
 require dirname(__DIR__) . '/includes/admin_header.php';
 ?>
 <div class="order-detail-page">
-    <div class="page-heading">
+    <div class="page-heading admin-page-heading">
         <div>
-            <p class="eyebrow">Gestion des commandes</p>
-            <h1>Commande <?= e($order['order_number']) ?></h1>
-            <p class="form-intro">
-                Créée le <?= e((new DateTimeImmutable((string) $order['created_at']))->format('d/m/Y à H:i')) ?>
-            </p>
+            <p class="eyebrow">Commande</p>
+            <h1><?= e($order['order_number']) ?></h1>
+            <p class="muted">Créée le <?= e((new DateTimeImmutable((string) $order['created_at']))->format('d/m/Y à H:i')) ?></p>
         </div>
         <div class="order-actions print-hidden">
-            <a class="button button-secondary" href="<?= e(site_url('admin/commandes.php')) ?>">Retour aux commandes</a>
-            <button class="button button-secondary" type="button" data-print>Imprimer / Enregistrer en PDF</button>
+            <a class="button button-secondary" href="<?= e(site_url('admin/commandes.php')) ?>">← Retour</a>
+            <button class="button button-primary" type="button" data-print>Imprimer</button>
         </div>
     </div>
 
@@ -234,7 +232,8 @@ require dirname(__DIR__) . '/includes/admin_header.php';
         <div class="notice notice-error" role="alert"><?= e($errorMessage) ?></div>
     <?php endif; ?>
 
-    <section class="admin-card order-status-card">
+    <!-- Carte de changement de statut -->
+        <section class="admin-card order-status-card">
         <div class="order-status-heading">
             <div>
                 <p class="dashboard-label">Statut actuel</p>
@@ -244,8 +243,6 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                 Stock <?= (int) $order['stock_deducted'] === 1 ? 'déjà déduit' : 'pas encore déduit' ?>.
                 <?php if ((int) $order['stock_deducted'] === 1): ?>
                     Une annulation ultérieure ne rétablit pas le stock.
-                <?php else: ?>
-                    La déduction intervient uniquement au passage au statut « Livrée ».
                 <?php endif; ?>
             </p>
         </div>
@@ -262,74 +259,58 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                     <?php endforeach; ?>
                 </select>
             </label>
-            <button class="button button-primary" type="submit">Enregistrer le statut</button>
+            <button class="button button-primary" type="submit">Enregistrer</button>
         </form>
     </section>
 
-    <section class="admin-card">
-        <h2>Informations client et livraison</h2>
-        <dl class="order-info-grid">
-            <div><dt>Nom</dt><dd><?= e($order['customer_last_name']) ?></dd></div>
-            <div><dt>Prénom</dt><dd><?= e($order['customer_first_name']) ?></dd></div>
-            <div><dt>Téléphone WhatsApp</dt><dd><a href="tel:<?= e($order['customer_phone']) ?>"><?= e($order['customer_phone']) ?></a></dd></div>
-            <div><dt>Commune</dt><dd><?= e($order['commune_name_snapshot']) ?> — <?= $order['delivery_zone'] === 'abidjan' ? 'Abidjan' : 'Hors Abidjan' ?></dd></div>
-            <div class="order-address"><dt>Précisions d’adresse</dt><dd><?= nl2br(e($order['address_details'])) ?></dd></div>
-        </dl>
-    </section>
+    <!-- 2 Colonnes : Infos Client + Récap Produits -->
+    <div class="order-detail-grid">
+        <section class="admin-card">
+            <h2 class="admin-card-title">Informations client</h2>
+            <dl class="order-info-grid">
+                <div><dt>Nom complet</dt><dd><?= e($order['customer_first_name'] . ' ' . $order['customer_last_name']) ?></dd></div>
+                <div><dt>Téléphone</dt><dd><a href="tel:<?= e($order['customer_phone']) ?>" style="color: var(--color-brand); font-weight: 700;"><?= e($order['customer_phone']) ?></a></dd></div>
+                <div><dt>Commune</dt><dd><?= e($order['commune_name_snapshot']) ?> <br><small class="muted"><?= $order['delivery_zone'] === 'abidjan' ? 'Abidjan' : 'Hors Abidjan' ?></small></dd></div>
+                <div class="order-address"><dt>Précisions d’adresse</dt><dd><?= nl2br(e($order['address_details'])) ?></dd></div>
+            </dl>
+        </section>
 
-    <section class="admin-card">
-        <h2>Produits commandés</h2>
-        <?php if ($orderItems === []): ?>
-            <p class="empty-state">Cette commande ne contient aucune ligne.</p>
-        <?php else: ?>
+        <section class="admin-card">
+            <h2 class="admin-card-title">Produits commandés</h2>
             <div class="table-wrap">
-                <table class="order-items-table">
-                    <thead>
+            <table class="order-items-table admin-table-modern">
+                <thead>
+                    <tr><th>Produit</th><th>Qté</th><th>Prix</th><th>Total</th></tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($orderItems as $item): ?>
+                        <?php $lineTotal = (int) $item['applied_price'] * (int) $item['quantity']; ?>
                         <tr>
-                            <th>Produit</th>
-                            <th>Quantité</th>
-                            <th>Prix appliqué</th>
-                            <th>Type de prix</th>
-                            <th>Total ligne</th>
+                            <td>
+                                <strong><?= e($item['product_name_snapshot']) ?></strong>
+                                <?php if ($item['variant_label_snapshot'] !== null): ?>
+                                    <br><small class="muted"><?= e($item['variant_label_snapshot']) ?></small>
+                                <?php endif; ?>
+                            </td>
+                            <td><?= e($item['quantity']) ?></td>
+                            <td><?= e(format_price($item['applied_price'])) ?></td>
+                            <td><strong><?= e(format_price($lineTotal)) ?></strong></td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($orderItems as $item): ?>
-                            <?php $lineTotal = (int) $item['applied_price'] * (int) $item['quantity']; ?>
-                            <tr>
-                                <td>
-                                    <strong><?= e($item['product_name_snapshot']) ?></strong>
-                                    <?php if ($item['variant_label_snapshot'] !== null): ?>
-                                        <br><span class="muted">Variante : <?= e($item['variant_label_snapshot']) ?></span>
-                                    <?php endif; ?>
-                                    <?php if ($item['product_id'] === null): ?>
-                                        <br><span class="muted">Produit supprimé du catalogue; aucun stock associé.</span>
-                                    <?php else: ?>
-                                        <br><span class="muted">Stock actuel : <?= e($item['current_stock']) ?></span>
-                                    <?php endif; ?>
-                                </td>
-                                <td><?= e($item['quantity']) ?></td>
-                                <td><?= e(format_price($item['applied_price'])) ?><?= (int) $item['is_promotion'] === 1 ? ' · promotion' : '' ?></td>
-                                <td><?= $item['price_type'] === 'gros' ? 'Gros' : 'Détail' ?></td>
-                                <td><?= e(format_price($lineTotal)) ?></td>
-                            </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
             </div>
-        <?php endif; ?>
-    </section>
 
-    <section class="admin-card order-totals-card">
-        <h2>Montants</h2>
-        <dl class="order-totals">
-            <div><dt>Sous-total</dt><dd><?= e(format_price($order['subtotal'])) ?></dd></div>
-            <div><dt>Frais de livraison</dt><dd><?= e(format_price($order['delivery_fee'])) ?></dd></div>
-            <div class="order-grand-total"><dt>Total</dt><dd><?= e(format_price($order['total'])) ?></dd></div>
-        </dl>
-        <p class="muted">Paiement à la livraison.</p>
-    </section>
+            <dl class="order-totals">
+                <div><dt>Sous-total</dt><dd><?= e(format_price($order['subtotal'])) ?></dd></div>
+                <div><dt>Livraison</dt><dd><?= e(format_price($order['delivery_fee'])) ?></dd></div>
+                <div class="order-grand-total"><dt>Total</dt><dd><?= e(format_price($order['total'])) ?></dd></div>
+            </dl>
+        </section>
+    </div>
 
     <p class="print-only">Commande <?= e($order['order_number']) ?> — Imprimée le <?= e((new DateTimeImmutable())->format('d/m/Y à H:i')) ?></p>
 </div>
 <?php require dirname(__DIR__) . '/includes/admin_footer.php'; ?>
+
+
