@@ -8,6 +8,7 @@ require_admin();
 $errorMessage = null;
 $newCategoryName = '';
 $newCategoryOrder = '';
+$existingCategoryImageName = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!is_valid_csrf_token($_POST['csrf_token'] ?? null)) {
@@ -17,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = $_POST['action'] ?? '';
 
         if ($action === 'save_category') {
+            $categoryImageUpload = null;
             $rawId = $_POST['category_id'] ?? '';
             $categoryId = $rawId === ''
                 ? null
@@ -41,39 +43,79 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $connection = db();
                 if ($categoryId !== null) {
-                    $existing = $connection->prepare('SELECT id FROM categories WHERE id = :id');
+                    $existing = $connection->prepare('SELECT id, image FROM categories WHERE id = :id');
                     $existing->execute(['id' => $categoryId]);
-                    if ($existing->fetchColumn() === false) {
+                    $existingCategory = $existing->fetch();
+                    if ($existingCategory === false) {
                         $errorMessage = 'Cette catégorie n’existe plus.';
+                    } else {
+                        $existingCategoryImageName = $existingCategory['image'];
                     }
                 }
 
                 if ($errorMessage === null) {
-                    $slug = unique_catalog_slug($connection, 'categories', $name, $categoryId);
-                    if ($categoryId === null) {
-                        $save = $connection->prepare(
-                            'INSERT INTO categories (name, slug, display_order)
-                             VALUES (:name, :slug, :display_order)'
-                        );
-                        $save->execute([
-                            'name' => $name,
-                            'slug' => $slug,
-                            'display_order' => $displayOrder,
+                    try {
+                        $categoryImageFile = $_FILES['category_image'] ?? [];
+                        $categoryImageUploads = collect_product_image_uploads([
+                            'error' => [$categoryImageFile['error'] ?? UPLOAD_ERR_NO_FILE],
+                            'tmp_name' => [$categoryImageFile['tmp_name'] ?? ''],
+                            'size' => [$categoryImageFile['size'] ?? 0],
                         ]);
-                        set_admin_flash('success', 'La catégorie a été ajoutée.');
-                    } else {
-                        $save = $connection->prepare(
-                            'UPDATE categories
-                             SET name = :name, slug = :slug, display_order = :display_order
-                             WHERE id = :id'
-                        );
-                        $save->execute([
-                            'name' => $name,
-                            'slug' => $slug,
-                            'display_order' => $displayOrder,
-                            'id' => $categoryId,
-                        ]);
-                        set_admin_flash('success', 'La catégorie a été mise à jour.');
+                        $categoryImageUpload = $categoryImageUploads[0] ?? null;
+                    } catch (InvalidArgumentException | RuntimeException $exception) {
+                        $errorMessage = $exception->getMessage();
+                    }
+                }
+
+                $storedCategoryImageName = null;
+                if ($errorMessage === null && $categoryImageUpload !== null) {
+                    try {
+                        $storedCategoryImageName = store_resized_product_image($categoryImageUpload, 'categories');
+                    } catch (InvalidArgumentException | RuntimeException $exception) {
+                        $errorMessage = $exception->getMessage();
+                    }
+                }
+
+                if ($errorMessage === null) {
+                    $categoryImageName = $storedCategoryImageName ?? $existingCategoryImageName;
+                    try {
+                        $slug = unique_catalog_slug($connection, 'categories', $name, $categoryId);
+                        if ($categoryId === null) {
+                            $save = $connection->prepare(
+                                'INSERT INTO categories (name, slug, image, display_order)
+                                 VALUES (:name, :slug, :image, :display_order)'
+                            );
+                            $save->execute([
+                                'name' => $name,
+                                'slug' => $slug,
+                                'image' => $categoryImageName,
+                                'display_order' => $displayOrder,
+                            ]);
+                            set_admin_flash('success', 'La catégorie a été ajoutée.');
+                        } else {
+                            $save = $connection->prepare(
+                                'UPDATE categories
+                                 SET name = :name, slug = :slug, image = :image, display_order = :display_order
+                                 WHERE id = :id'
+                            );
+                            $save->execute([
+                                'name' => $name,
+                                'slug' => $slug,
+                                'image' => $categoryImageName,
+                                'display_order' => $displayOrder,
+                                'id' => $categoryId,
+                            ]);
+                            set_admin_flash('success', 'La catégorie a été mise à jour.');
+                        }
+                    } catch (Throwable $exception) {
+                        if ($storedCategoryImageName !== null) {
+                            delete_category_image_file($storedCategoryImageName);
+                        }
+                        throw $exception;
+                    }
+
+                    if ($storedCategoryImageName !== null && $existingCategoryImageName !== null) {
+                        delete_category_image_file((string) $existingCategoryImageName);
                     }
                     admin_redirect('admin/categories.php');
                 }
@@ -91,11 +133,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ((int) $productCount->fetchColumn() > 0) {
                     $errorMessage = 'Réaffecte d’abord les produits de cette catégorie avant de la supprimer.';
                 } else {
+                    $imageQuery = db()->prepare('SELECT image FROM categories WHERE id = :id');
+                    $imageQuery->execute(['id' => $categoryId]);
+                    $categoryImageName = $imageQuery->fetchColumn();
                     $delete = db()->prepare('DELETE FROM categories WHERE id = :id');
                     $delete->execute(['id' => $categoryId]);
                     if ($delete->rowCount() !== 1) {
                         $errorMessage = 'Cette catégorie n’existe plus.';
                     } else {
+                        if (is_string($categoryImageName)) {
+                            delete_category_image_file($categoryImageName);
+                        }
                         set_admin_flash('success', 'La catégorie a été supprimée.');
                         admin_redirect('admin/categories.php');
                     }
@@ -109,10 +157,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $categories = db()->query(
-    'SELECT c.id, c.name, c.slug, c.display_order, COUNT(p.id) AS product_count
+    'SELECT c.id, c.name, c.slug, c.image, c.display_order, COUNT(p.id) AS product_count
      FROM categories AS c
      LEFT JOIN products AS p ON p.category_id = c.id
-     GROUP BY c.id, c.name, c.slug, c.display_order
+     GROUP BY c.id, c.name, c.slug, c.image, c.display_order
      ORDER BY c.display_order, c.name'
 )->fetchAll();
 
@@ -141,8 +189,12 @@ require dirname(__DIR__) . '/includes/admin_header.php';
     <?php else: ?>
         <div class="category-admin-list">
             <?php foreach ($categories as $category): ?>
+                <?php $categoryImageUrl = category_image_url($category['image'] ?? null); ?>
                 <div class="category-admin-item">
                     <div class="category-admin-info">
+                        <?php if ($categoryImageUrl !== null): ?>
+                            <img class="category-admin-image" src="<?= e($categoryImageUrl) ?>" alt="Image de <?= e($category['name']) ?>" loading="lazy">
+                        <?php endif; ?>
                         <h3><?= e($category['name']) ?></h3>
                         <p class="muted">
                             <?= e($category['product_count']) ?> produit(s) · Ordre : <?= e($category['display_order']) ?>
@@ -164,7 +216,7 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                         </form>
                     </div>
 
-                    <form class="category-edit-form" id="edit-form-<?= e($category['id']) ?>" method="post" action="<?= e(site_url('admin/categories.php')) ?>" hidden>
+                    <form class="category-edit-form" id="edit-form-<?= e($category['id']) ?>" method="post" action="<?= e(site_url('admin/categories.php')) ?>" enctype="multipart/form-data" hidden>
                         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                         <input type="hidden" name="action" value="save_category">
                         <input type="hidden" name="category_id" value="<?= e($category['id']) ?>">
@@ -175,6 +227,11 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                         <label class="form-field">
                             <span>Ordre d'affichage</span>
                             <input type="number" name="display_order" min="0" max="4294967295" step="1" value="<?= e($category['display_order']) ?>" required>
+                        </label>
+                        <label class="form-field category-image-upload-field">
+                            <span>Image de la catégorie</span>
+                            <input type="file" name="category_image" accept="image/jpeg,image/png,image/webp">
+                            <small>JPG, PNG ou WebP, 5 Mo maximum. Laisse vide pour conserver l’image actuelle.</small>
                         </label>
                         <div class="form-actions">
                             <button class="button button-primary" type="submit">Enregistrer</button>
@@ -189,7 +246,7 @@ require dirname(__DIR__) . '/includes/admin_header.php';
 
 <section class="admin-card" id="add-category-section" hidden>
     <h2 class="admin-card-title">Ajouter une catégorie</h2>
-    <form class="form-grid category-add-form" method="post" action="<?= e(site_url('admin/categories.php')) ?>">
+    <form class="form-grid category-add-form" method="post" action="<?= e(site_url('admin/categories.php')) ?>" enctype="multipart/form-data">
         <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
         <input type="hidden" name="action" value="save_category">
         <label class="form-field">
@@ -200,6 +257,11 @@ require dirname(__DIR__) . '/includes/admin_header.php';
             <span>Ordre d’affichage</span>
             <input type="number" name="display_order" min="0" max="4294967295" step="1" value="<?= e($newCategoryOrder) ?>" required>
         </label>
+        <label class="form-field category-image-upload-field">
+            <span>Image de la catégorie (facultatif)</span>
+            <input type="file" name="category_image" accept="image/jpeg,image/png,image/webp">
+            <small>JPG, PNG ou WebP, 5 Mo maximum.</small>
+        </label>
         <div class="form-actions">
             <button class="button button-primary" type="submit">Ajouter</button>
             <button class="button button-secondary" type="button" id="btn-cancel-add-category">Annuler</button>
@@ -207,34 +269,4 @@ require dirname(__DIR__) . '/includes/admin_header.php';
     </form>
 </section>
 
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const addSection = document.getElementById('add-category-section');
-    const addButton = document.getElementById('btn-toggle-add-category');
-    const cancelAddButton = document.getElementById('btn-cancel-add-category');
-
-    const setAddSectionOpen = (open) => {
-        if (!addSection || !addButton) return;
-        addSection.hidden = !open;
-        addButton.setAttribute('aria-expanded', String(open));
-        if (open) addSection.querySelector('input[name="name"]')?.focus();
-    };
-
-    addButton?.addEventListener('click', () => setAddSectionOpen(addSection.hidden));
-    cancelAddButton?.addEventListener('click', () => setAddSectionOpen(false));
-
-    document.querySelectorAll('[data-toggle-edit]').forEach((button) => {
-        button.addEventListener('click', () => {
-            const editForm = document.getElementById(`edit-form-${button.dataset.toggleEdit}`);
-            if (!editForm) return;
-            const open = editForm.hidden;
-            editForm.hidden = !open;
-            document.querySelectorAll(`[data-toggle-edit="${button.dataset.toggleEdit}"]`).forEach((control) => {
-                control.setAttribute('aria-expanded', String(open));
-            });
-            if (open) editForm.querySelector('input[name="name"]')?.focus();
-        });
-    });
-});
-</script>
 <?php require dirname(__DIR__) . '/includes/admin_footer.php'; ?>

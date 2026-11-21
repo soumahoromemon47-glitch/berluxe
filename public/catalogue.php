@@ -124,6 +124,7 @@ if ($filterError === null) {
     $sql = 'SELECT p.id, p.name, p.retail_price, p.wholesale_price,
                    p.wholesale_min_quantity, p.promotion_price,
                    p.is_featured, p.is_on_promotion, p.is_unavailable,
+                   EXISTS (SELECT 1 FROM product_variants AS pv WHERE pv.product_id = p.id) AS has_variants,
                    c.name AS category_name,
                    ' . $displayPriceSql . ' AS display_price,
                    (

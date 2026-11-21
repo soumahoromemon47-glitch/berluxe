@@ -16,6 +16,7 @@ $databasePassword = getenv('BERLUXE_DB_PASSWORD');
 define('DB_PASSWORD', $databasePassword === false ? '' : $databasePassword);
 define('DB_CHARSET', 'utf8mb4');
 
+
 $debugSetting = getenv('BERLUXE_DEBUG');
 define('DEBUG', $debugSetting !== false && filter_var($debugSetting, FILTER_VALIDATE_BOOLEAN));
 

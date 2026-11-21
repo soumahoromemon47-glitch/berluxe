@@ -510,7 +510,25 @@ document.addEventListener("DOMContentLoaded", () => {
       const id = btn.dataset.toggleEdit;
       const form = document.getElementById("edit-form-" + id);
       if (form) {
-        form.hidden = !form.hidden;
+        const open = form.hidden;
+        form.hidden = !open;
+        document
+          .querySelectorAll(`[data-toggle-edit="${CSS.escape(id)}"]`)
+          .forEach((control) => {
+            control.setAttribute("aria-expanded", String(open));
+          });
+        if (open) {
+          form.querySelector('input[name="name"]')?.focus();
+        }
+      }
+    });
+  });
+
+  document.querySelectorAll("form[data-confirm]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      const message = form.getAttribute("data-confirm");
+      if (message && !window.confirm(message)) {
+        event.preventDefault();
       }
     });
   });
@@ -520,12 +538,26 @@ document.addEventListener("DOMContentLoaded", () => {
 // EFFET FADE-IN AU SCROLL
 // ============================================================
 document.addEventListener("DOMContentLoaded", () => {
+  if (window.matchMedia("(max-width: 767px)").matches) {
+    document
+      .querySelectorAll(
+        ".storefront-section, .promo-banner, .catalogue-banner, .product-card, .trust-banner-section, .admin-card, .stat-card, .dashboard-card, .checkout-form-card, .checkout-summary-card, .confirmation-success, .confirmation-recap, .order-detail-grid > section",
+      )
+      .forEach((element) => {
+        element.style.opacity = "1";
+        element.style.transform = "none";
+        element.style.transition = "none";
+      });
+    return;
+  }
+
+  // Respecte le choix d’accessibilité de réduire les animations.
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
     return;
   }
 
   const elementsToAnimate = document.querySelectorAll(
-    ".storefront-section, .promo-banner, .catalogue-banner, .product-card, .trust-banner-section, .checkout-form-card, .checkout-summary-card, .confirmation-success, .confirmation-recap, .admin-card, .stat-card, .dashboard-card, .order-detail-grid > section"
+    ".storefront-section, .promo-banner, .catalogue-banner, .product-card, .trust-banner-section, .checkout-form-card, .checkout-summary-card, .confirmation-success, .confirmation-recap, .admin-card, .stat-card, .dashboard-card, .order-detail-grid > section",
   );
 
   if (elementsToAnimate.length === 0 || !("IntersectionObserver" in window)) {
@@ -552,13 +584,32 @@ document.addEventListener("DOMContentLoaded", () => {
     {
       threshold: 0.1,
       rootMargin: "0px 0px -50px 0px",
-    }
+    },
   );
 
   elementsToAnimate.forEach((element) => {
     element.style.opacity = "0";
     element.style.transform = "translateY(30px)";
-    element.style.transition = "opacity 0.6s ease-out, transform 0.6s ease-out";
+    element.style.transition = "opacity 0.45s ease-out, transform 0.45s ease-out";
     observer.observe(element);
   });
+});
+
+// Ajouter une option dynamiquement
+document.addEventListener('DOMContentLoaded', () => {
+    const btnAddOption = document.getElementById('btn-add-option');
+    const optionsList = document.getElementById('options-list');
+
+    if (btnAddOption && optionsList) {
+        btnAddOption.addEventListener('click', () => {
+            const newItem = document.createElement('div');
+            newItem.className = 'option-item';
+            newItem.innerHTML = `
+                <input type="text" name="variants[]" placeholder="Ex: Rouge, Taille M, Modèle Pro...">
+                <button type="button" class="button-icon-action delete" onclick="this.parentElement.remove()" title="Supprimer">✕</button>
+            `;
+            optionsList.appendChild(newItem);
+            newItem.querySelector('input').focus();
+        });
+    }
 });

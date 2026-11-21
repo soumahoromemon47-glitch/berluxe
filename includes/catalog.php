@@ -133,7 +133,7 @@ function collect_product_image_uploads(array $fileBag): array
     return $uploads;
 }
 
-function store_resized_product_image(array $image): string
+function store_resized_product_image(array $image, string $destinationFolder = 'products'): string
 {
     if (!function_exists('imagecreatefromstring')) {
         throw new RuntimeException('GD est nécessaire pour traiter les photos. Active-le puis redémarre Apache.');
@@ -149,9 +149,13 @@ function store_resized_product_image(array $image): string
         throw new InvalidArgumentException('Le format de la photo n’est pas pris en charge.');
     }
 
-    $directory = dirname(__DIR__) . '/uploads/products';
+    if (!in_array($destinationFolder, ['products', 'categories'], true)) {
+        throw new InvalidArgumentException('Le dossier de destination de cette image est invalide.');
+    }
+
+    $directory = dirname(__DIR__) . '/uploads/' . $destinationFolder;
     if (!is_dir($directory) || !is_writable($directory)) {
-        throw new RuntimeException('Le dossier des photos produits n’est pas accessible en écriture.');
+        throw new RuntimeException('Le dossier de destination des images n’est pas accessible en écriture.');
     }
 
     $contents = file_get_contents((string) ($image['tmp_name'] ?? ''));
@@ -248,4 +252,18 @@ function delete_product_image_files(array $fileNames): array
     }
 
     return $failedFiles;
+}
+
+function delete_category_image_file(?string $fileName): bool
+{
+    if ($fileName === null || $fileName === '') {
+        return true;
+    }
+    if (basename($fileName) !== $fileName) {
+        error_log('Berluxe refused an unsafe category image path.');
+        return false;
+    }
+
+    $path = dirname(__DIR__) . '/uploads/categories/' . $fileName;
+    return !is_file($path) || unlink($path);
 }

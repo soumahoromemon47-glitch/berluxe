@@ -8,7 +8,7 @@
                     <div class="footer-social">
                         <a href="#" aria-label="Facebook" class="social-link">📘</a>
                         <a href="#" aria-label="Instagram" class="social-link">📷</a>
-                        <a href="https://wa.me/2250703043422" target="_blank" rel="noopener" aria-label="WhatsApp" class="social-link">💬</a>
+                        <a href="https://wa.me/2250576596103" target="_blank" rel="noopener" aria-label="WhatsApp" class="social-link">💬</a>
                     </div>
                 </div>
 
@@ -24,7 +24,7 @@
                 <div class="footer-nav">
                     <h4>Service client</h4>
                     <ul>
-                        <li><a href="https://wa.me/2250703043422" target="_blank" rel="noopener">Nous contacter (WhatsApp)</a></li>
+                        <li><a href="https://wa.me/2250576596103" target="_blank" rel="noopener">Nous contacter (WhatsApp)</a></li>
                         <li><a href="mailto:contact@berluxe.com">contact@berluxe.com</a></li>
                         <li>Paiement à la livraison</li>
                     </ul>
@@ -46,7 +46,7 @@
         </div>
     </footer>
 
-    <a href="https://wa.me/2250703043422?text=Bonjour%20Roxane%2C%20j%27ai%20une%20question%20sur%20Berluxe."
+    <a href="https://wa.me/2250576596103?text=Bonjour%20Roxane%2C%20j%27ai%20une%20question%20sur%20Berluxe."
        class="whatsapp-float"
        target="_blank"
        rel="noopener"

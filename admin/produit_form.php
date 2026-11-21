@@ -89,8 +89,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $product['is_on_promotion'] = isset($_POST['is_on_promotion']) ? 1 : 0;
         $product['is_unavailable'] = isset($_POST['is_unavailable']) ? 1 : 0;
 
-        $rawVariants = $_POST['variants'] ?? '';
-        $variantText = is_string($rawVariants) ? $rawVariants : '';
+        $rawVariants = $_POST['variants'] ?? [];
+        $variantText = is_array($rawVariants) ? implode("\n", array_filter(array_map('trim', $rawVariants))) : '';
         $validationErrors = [];
 
         if (preg_match('/^.{1,180}$/us', $product['name']) !== 1) {
@@ -385,7 +385,6 @@ require dirname(__DIR__) . '/includes/admin_header.php';
     <!-- Champs cachés pour la compatibilité avec l'ancienne logique -->
     <input type="hidden" name="wholesale_price" value="<?= e($product['wholesale_price'] !== '' ? $product['wholesale_price'] : ($product['retail_price'] !== '' ? $product['retail_price'] : '1')) ?>">
     <input type="hidden" name="wholesale_min_quantity" value="<?= e($product['wholesale_min_quantity'] !== '' ? $product['wholesale_min_quantity'] : '1') ?>">
-    <input type="hidden" name="variants" value="<?= e($variantText) ?>">
 
     <div class="form-layout-grid">
         <!-- Colonne Principale (Infos + Description) -->
@@ -427,6 +426,27 @@ require dirname(__DIR__) . '/includes/admin_header.php';
                         <input type="number" name="stock" min="0" max="4294967295" step="1" value="<?= e($product['stock']) ?>" required>
                     </label>
                 </div>
+            </section>
+
+            <section class="admin-card">
+                <h2 class="admin-card-title">Options (variantes)</h2>
+                <p class="muted" style="margin-bottom: 16px;">Ajoute des options comme des couleurs ou des modèles. Laisse vide si le produit n'a pas d'option.</p>
+
+                <div class="options-list" id="options-list">
+                    <?php if (!empty($variantText)): ?>
+                        <?php foreach (explode("\n", $variantText) as $variant): ?>
+                            <?php if (trim($variant) === '') continue; ?>
+                            <div class="option-item">
+                                <input type="text" name="variants[]" value="<?= e(trim($variant)) ?>" placeholder="Ex: Rouge, Taille M, Modèle Pro...">
+                                <button type="button" class="button-icon-action delete" onclick="this.parentElement.remove()" title="Supprimer" aria-label="Supprimer cette option">✕</button>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+
+                <button type="button" class="button button-secondary" id="btn-add-option" style="margin-top: 12px;">
+                    + Ajouter une option
+                </button>
             </section>
 
             <section class="admin-card">

@@ -103,16 +103,6 @@ require dirname(__DIR__) . '/includes/header.php';
     <?php else: ?>
         <?php $isOnPromotion = (int) $product['is_on_promotion'] === 1 && $product['promotion_price'] !== null; ?>
         <?php $isUnavailable = (int) $product['is_unavailable'] === 1; ?>
-        <p class="breadcrumb">
-            <a href="<?= e(site_url('public/catalogue.php')) ?>">Catalogue</a>
-            <span aria-hidden="true">/</span>
-            <?php if ($product['category_name'] !== null): ?>
-                <a href="<?= e(site_url('public/catalogue.php?category_id=' . (int) $product['category_id'])) ?>"><?= e($product['category_name']) ?></a>
-                <span aria-hidden="true">/</span>
-            <?php endif; ?>
-            <span><?= e($product['name']) ?></span>
-        </p>
-
         <section class="product-detail-layout">
             <div class="product-gallery" aria-label="Photos du produit">
                 <?php if ($images === []): ?>
@@ -175,17 +165,19 @@ require dirname(__DIR__) . '/includes/header.php';
                         <input type="hidden" name="csrf_token" value="<?= e($cartCsrfToken) ?>">
                         <input type="hidden" name="action" value="add">
                         <input type="hidden" name="product_id" value="<?= e($product['id']) ?>">
+
+                        
                         <?php if ($variants !== []): ?>
-                            <label class="form-field product-variant-field">
-                                <span>Option</span>
-                                <select name="variant_id" required>
-                                    <option value="">Choisir une option</option>
-                                    <?php foreach ($variants as $variant): ?>
-                                        <option value="<?= e($variant['id']) ?>"><?= e($variant['label']) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </label>
-                        <?php else: ?>
+        <label class="form-field product-variant-field">
+            <span>Choisir une option</span>
+            <select name="variant_id" required>
+                <option value="">Sélectionne une option</option>
+                <?php foreach ($variants as $variant): ?>
+                    <option value="<?= e($variant['id']) ?>"><?= e($variant['label']) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </label>
+    <?php else: ?>
                             <input type="hidden" name="variant_id" value="">
                         <?php endif; ?>
                         <label class="form-field">

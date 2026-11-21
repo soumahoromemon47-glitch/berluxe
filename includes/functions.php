@@ -64,3 +64,17 @@ function required_setting(array $settings, string $key): string
 
     return $settings[$key];
 }
+
+function category_image_url(?string $fileName): ?string
+{
+    if (
+        $fileName === null
+        || $fileName === ''
+        || basename($fileName) !== $fileName
+        || !is_file(dirname(__DIR__) . '/uploads/categories/' . $fileName)
+    ) {
+        return null;
+    }
+
+    return site_url('uploads/categories/' . rawurlencode($fileName));
+}

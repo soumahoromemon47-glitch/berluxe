@@ -30,6 +30,11 @@
     <?php if (!empty($showQuickAdd)): ?>
         <div class="product-card-actions">
             <?php if ((int) $product['is_unavailable'] !== 1): ?>
+                <?php if (!empty($product['has_variants']) || !empty($product['variants'])): ?>
+                    <a class="button-add-to-cart" href="<?= e(site_url('public/produit.php?id=' . (int) $product['id'])) ?>" title="Choisir une option" aria-label="Choisir une option pour <?= e($product['name']) ?>">
+                        <span>Choisir une option</span>
+                    </a>
+                <?php else: ?>
                 <form class="cart-add-form" method="post" action="<?= e(site_url('public/cart_action.php')) ?>">
                     <input type="hidden" name="csrf_token" value="<?= e(csrf_token()) ?>">
                     <input type="hidden" name="action" value="add">
@@ -42,6 +47,7 @@
                     </button>
                 </form>
                 <p class="cart-add-feedback" data-cart-add-feedback role="status" aria-live="polite" aria-hidden="true" hidden></p>
+                <?php endif; ?>
             <?php else: ?>
                 <button class="button-unavailable" type="button" disabled>Indisponible</button>
             <?php endif; ?>
