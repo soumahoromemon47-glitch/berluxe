@@ -6,9 +6,15 @@
                     <p class="footer-brand"><?= e(SITE_NAME) ?></p>
                     <p class="footer-slogan"><?= e(SITE_SLOGAN) ?><br>Outillage, maison, mobilier et décoration à Abidjan.</p>
                     <div class="footer-social">
-                        <a href="#" aria-label="Facebook" class="social-link">📘</a>
-                        <a href="#" aria-label="Instagram" class="social-link">📷</a>
-                        <a href="https://wa.me/2250576596103" target="_blank" rel="noopener" aria-label="WhatsApp" class="social-link">💬</a>
+                        <a href="https://www.facebook.com/beruluxe" target="_blank" rel="noopener noreferrer" aria-label="Facebook" class="social-link">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M13.5 21v-8h2.7l.4-3.1h-3.1v-2c0-.9.3-1.5 1.6-1.5h1.7V3.6c-.8-.1-1.7-.2-2.7-.2-2.9 0-4.8 1.8-4.8 5V10H6v3.1h3.3v8h4.2Z" fill="currentColor"/></svg>
+                        </a>
+                        <a href="https://www.tiktok.com/" target="_blank" rel="noopener noreferrer" aria-label="TikTok" class="social-link">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M19.6 7.1a6.5 6.5 0 0 1-4.1-1.5v8.1a6.1 6.1 0 1 1-5.3-6v3.3a2.8 2.8 0 1 0 2 2.7V2h3.3c.2 2.3 1.8 4.1 4.1 4.4v.7Z" fill="currentColor"/></svg>
+                        </a>
+                        <a href="https://www.instagram.com/" target="_blank" rel="noopener noreferrer" aria-label="Instagram" class="social-link">
+                            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="3" y="3" width="18" height="18" rx="5" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="17.5" cy="6.8" r="1.2" fill="currentColor"/></svg>
+                        </a>
                     </div>
                 </div>
 

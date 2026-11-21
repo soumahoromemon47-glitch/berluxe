@@ -846,27 +846,6 @@ body.filters-open {
   width: 100%;
 }
 
-.category-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
-  background: var(--color-gold-soft);
-  border-radius: 50%;
-  color: var(--color-brand);
-}
-
-.category-icon svg {
-  width: 24px;
-  height: 24px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 2;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
 .category-name {
   font-size: 0.8rem;
   font-weight: 600;
@@ -1026,16 +1005,6 @@ body.filters-open {
     gap: 12px;
   }
 
-  .category-icon {
-    width: 56px;
-    height: 56px;
-  }
-
-  .category-icon svg {
-    width: 20px;
-    height: 20px;
-  }
-
   .category-name {
     font-size: 0.75rem;
   }
@@ -1193,16 +1162,6 @@ body.filters-open {
   .category-grid {
     grid-template-columns: repeat(6, 1fr);
     gap: 20px;
-  }
-
-  .category-icon {
-    width: 64px;
-    height: 64px;
-  }
-
-  .category-icon svg {
-    width: 24px;
-    height: 24px;
   }
 
   .category-name {
@@ -5264,58 +5223,6 @@ body.admin-body {
   }
 }
 
-/* Hero avec grande barre de recherche */
-.hero-search-large {
-  display: flex;
-  width: 100%;
-  max-width: 640px;
-  margin: 24px auto 16px;
-  background: #ffffff;
-  border-radius: 999px;
-  overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-  height: 56px;
-}
-
-.hero-search-large input {
-  flex: 1;
-  border: none !important;
-  padding: 0 20px !important;
-  font-size: 0.95rem !important;
-  background: transparent !important;
-  outline: none;
-  min-width: 0; /* Important pour que l'input ne dépasse pas */
-}
-
-.hero-search-large button {
-  border-radius: 999px !important;
-  margin: 6px;
-  padding: 0 20px !important;
-  background: var(--color-brand) !important;
-  color: #ffffff !important;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0; /* Le bouton ne se compresse pas */
-}
-
-@media (max-width: 767px) {
-  .hero-search-large {
-    height: 48px;
-    margin: 16px 0;
-  }
-  .hero-search-large input {
-    padding: 0 16px !important;
-    font-size: 0.85rem !important;
-  }
-  .hero-search-large button {
-    padding: 0 16px !important;
-    margin: 4px;
-  }
-}
-
 /* Boutons CTA du hero */
 .hero-cta-links {
   display: flex;
@@ -5618,43 +5525,6 @@ body.admin-body {
   .top-announcement-track > span:nth-child(3),
   .top-announcement-track > span:nth-child(6) {
     display: none !important;
-  }
-
-  .hero-search-large {
-    display: flex;
-    width: 100%;
-    min-width: 0;
-    height: 50px;
-    margin: 18px auto;
-    overflow: hidden;
-    border-radius: 999px;
-  }
-
-  .hero-search-large input {
-    display: block;
-    flex: 1 1 auto;
-    width: 0;
-    min-width: 0;
-    height: 100%;
-    padding: 0 12px !important;
-    font-size: 0.82rem !important;
-  }
-
-  .hero-search-large button {
-    display: inline-flex;
-    flex: 0 0 42px;
-    align-items: center;
-    justify-content: center;
-    width: 42px;
-    min-width: 42px;
-    height: 42px;
-    margin: 4px !important;
-    padding: 0 !important;
-  }
-
-  .hero-search-large button svg {
-    width: 18px;
-    height: 18px;
   }
 
   .site-nav {
@@ -6122,8 +5992,15 @@ body.admin-body {
   height: 40px;
   background: rgba(255, 255, 255, 0.08);
   border-radius: 50%;
+  color: #ffffff;
   font-size: 1.1rem;
   transition: background 0.2s;
+}
+
+.social-link svg {
+  display: block;
+  width: 20px;
+  height: 20px;
 }
 
 .social-link:hover {
@@ -6734,7 +6611,7 @@ body.admin-body {
   overflow: hidden;
   margin-bottom: 24px;
   padding: 48px 24px;
-  background-image: url("https://images.unsplash.com/photo-1581092918056-0c4c3acd3789?ixlib=rb-4.0.3&auto=format&fit=crop&w=1600&q=80");
+  background-image: url("https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=600&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D");
   background-size: cover;
   background-position: center;
   color: #ffffff;
@@ -7091,10 +6968,6 @@ body.admin-body {
 }
 
 @media (max-width: 767px) {
-  .storefront-hero .hero-search-large {
-    display: none !important;
-  }
-
   .storefront-hero .hero-cta-links {
     display: flex !important;
     flex-wrap: nowrap !important;
